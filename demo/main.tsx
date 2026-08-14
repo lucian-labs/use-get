@@ -6,7 +6,7 @@
  * panel is live state read off the hook.
  */
 
-import { StrictMode, useMemo, useState } from 'react'
+import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useGet, usePromise } from '@dank-inc/use-get'
 
@@ -55,7 +55,9 @@ const StateBadge = ({ state }: { state: { data: unknown; error: unknown; loading
 
 const UseGetPanel = () => {
   const [path, setPath] = useState('takes.json')
-  const res = useGet<Take[]>({ path })
+  // takes.json wraps its payload in { data: [...] }; select unwraps it. Without
+  // select you get the parsed body exactly as the endpoint sent it.
+  const res = useGet<Take[]>({ path, select: (body) => (body as { data: Take[] }).data })
 
   const lastRequest = requests[requests.length - 1] ?? '—'
 
@@ -66,7 +68,10 @@ const UseGetPanel = () => {
         path changes; <code>get</code> comes back in the result so you can refetch by hand.
       </p>
 
-      <Code>{`const takes = useGet<Take[]>({ path: '${path}' })
+      <Code>{`const takes = useGet<Take[]>({
+  path: '${path}',
+  select: (body) => (body as Envelope).data,
+})
 
 if (takes.loading) return <Spinner />
 if (takes.error) return <Error msg={takes.error} />
@@ -118,30 +123,26 @@ const UsePromisePanel = () => {
   const [nonce, setNonce] = useState(0)
   const [shouldFail, setShouldFail] = useState(false)
 
-  // The hook takes a promise, so the promise must be stable across renders —
-  // useMemo is the only way to call it without handing it a new promise every
-  // render.
-  const promise = useMemo(() => {
-    void nonce
-    return new Promise<{ ok: true; at: string }>((resolve, reject) =>
-      setTimeout(() => {
-        shouldFail ? reject(new Error('upstream said no')) : resolve({ ok: true, at: new Date().toISOString() })
-      }, 600)
-    )
-  }, [nonce, shouldFail])
-
-  const res = usePromise(promise)
+  // The hook takes a factory plus deps, so writing the call inline is safe:
+  // the promise is created when deps change, not on every render.
+  const res = usePromise(
+    () =>
+      new Promise<{ ok: true; at: string }>((resolve, reject) =>
+        setTimeout(() => {
+          shouldFail ? reject(new Error('upstream said no')) : resolve({ ok: true, at: new Date().toISOString() })
+        }, 600)
+      ),
+    [nonce, shouldFail]
+  )
 
   return (
     <Section title="usePromise">
       <p className="wl-muted">
-        The same union over any promise you already have — a client method, a dynamic import,
-        anything. Because it takes the promise rather than a factory, the promise has to be memoised
-        by the caller.
+        The same union over anything async — a client method, a dynamic import. It takes a factory
+        and a dependency array rather than a live promise, so it runs when you say it runs.
       </p>
 
-      <Code>{`const promise = useMemo(() => api.getTakes(), [id])
-const takes = usePromise(promise)`}</Code>
+      <Code>{`const takes = usePromise(() => api.getTakes(id), [id])`}</Code>
 
       <div className="wl-row" style={{ marginTop: '0.75rem' }}>
         <button className="wl-btn" onClick={() => setNonce((n) => n + 1)}>
@@ -188,14 +189,17 @@ const Api = () => (
           <tr>
             <td>useGet</td>
             <td>hook</td>
-            <td>{'<T>({ path }: { path: string }) => Res<T> & { get }'}</td>
-            <td>Fetches on mount and whenever path changes; unwraps the response body’s data field.</td>
+            <td>{'<T>({ path, init?, select? }) => Res<T> & { get }'}</td>
+            <td>
+              Fetches on mount and whenever path changes, aborting the previous request. Returns the
+              parsed body unless <code>select</code> picks something out of it.
+            </td>
           </tr>
           <tr>
             <td>usePromise</td>
             <td>hook</td>
-            <td>{'<T>(promise: Promise<T>) => Res<T>'}</td>
-            <td>Same union over a promise you already hold.</td>
+            <td>{'<T>(fn: () => Promise<T>, deps?: unknown[]) => Res<T>'}</td>
+            <td>Same union over any async call; deps decide when it re-runs.</td>
           </tr>
           <tr>
             <td>Res&lt;T&gt;</td>
