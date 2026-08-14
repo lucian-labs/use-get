@@ -1,0 +1,8 @@
+{
+  "data": [
+    { "id": "tk-001", "name": "room tone", "bars": 4, "sealed": true },
+    { "id": "tk-002", "name": "kick loop", "bars": 8, "sealed": false },
+    { "id": "tk-003", "name": "vox scratch", "bars": 16, "sealed": false },
+    { "id": "tk-004", "name": "tape hiss", "bars": 2, "sealed": true }
+  ]
+}

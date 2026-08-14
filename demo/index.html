@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>use-get — @dank-inc/use-get</title>
+    <meta
+      name="description"
+      content="Interactive demo of @dank-inc/use-get — React hooks for reading a resource: useGet for a path, usePromise for anything already in flight."
+    />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="https://ds.lucianlabs.ca/waveloop.css" />
+    <script type="module" src="https://ds.lucianlabs.ca/waveloop.js"></script>
+  </head>
+  <body>
+    <wl-demo
+      sub="use-get"
+      wordmark="use get"
+      version="0.3.3"
+      accent="blue"
+      tagline="Two React hooks for reading a resource: useGet takes a path, usePromise takes anything already in flight. Both return a discriminated { data, error, loading } union."
+    >
+      <div id="root"></div>
+    </wl-demo>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
